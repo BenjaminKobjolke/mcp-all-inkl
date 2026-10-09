@@ -179,6 +179,30 @@ Add to Zed `settings.json` (via Agent Panel -> Settings):
 
 Get your KAS login from the [KAS admin panel](https://kas.all-inkl.com) - it's shown in the top right after login.
 
+## CLI Usage
+
+The same binary works as a plain command line tool. Without arguments it starts the MCP stdio server; with arguments it runs one action and prints the JSON result.
+
+```
+mcp-all-inkl <tool> <action> [key=value ...] [--pick a,b] [--filter key=value]...
+mcp-all-inkl --help
+```
+
+```bash
+export KAS_LOGIN=w0XXXXXXX KAS_PASSWORD=...
+
+mcp-all-inkl domain list --pick domain_name
+mcp-all-inkl dns list zone_host=example.com --filter record_type=MX
+mcp-all-inkl dns create zone_host=example.com record_type=TXT record_name=test record_data=hello record_aux=0
+```
+
+- `<tool>` is the tool name with or without the `kas_` prefix (`dns` or `kas_dns`).
+- `key=value` pairs are sent as `params`; values are always strings.
+- Errors go to stderr with exit code 1.
+- Set `READONLY=true` to block all write actions.
+
+Full reference: [docs/CLI.md](docs/CLI.md).
+
 ## pick & filter - Response Optimization
 
 All tools support optional `pick` and `filter` parameters to reduce token usage on large responses.
@@ -442,7 +466,9 @@ node test.mjs
 
 ```
 src/
-  index.ts          # MCP server setup, tool definitions with descriptions
+  index.ts          # Entry point: CLI with arguments, MCP stdio server without
+  cli.ts            # Command line argument parsing
+  server.ts         # MCP server setup, tool definitions with descriptions
   kas-client.ts     # SOAP client, auth, XML parser, API caller
   types.ts          # TypeScript interfaces
   tools/
