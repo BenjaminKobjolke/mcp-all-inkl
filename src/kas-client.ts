@@ -3,7 +3,7 @@ import type { KasSession, McpResult } from "./types.js";
 const AUTH_URL = "https://kasapi.kasserver.com/soap/KasAuth.php";
 const API_URL = "https://kasapi.kasserver.com/soap/KasApi.php";
 
-let session: KasSession | null = null;
+const sessions: Record<string, KasSession> = {};
 const lastFloodDelay: Record<string, number> = {};
 
 function buildSoap(ns: string, method: string, params: Record<string, unknown>): string {
@@ -123,29 +123,33 @@ function parseKasResponse(xml: string): unknown {
 }
 // --- Session & API ---
 
-async function getSession(): Promise<string> {
+// Subaccounts are full KAS accounts with their own password: KAS_PASSWORD_<login>.
+export function kasPassword(login: string | undefined): string | undefined {
+  return login === process.env.KAS_LOGIN ? process.env.KAS_PASSWORD : process.env[`KAS_PASSWORD_${login}`];
+}
+
+async function getSession(user: string | undefined): Promise<string> {
   const now = Date.now();
-  if (session && session.expiresAt > now + 30_000) return session.token;
-  const user = process.env.KAS_LOGIN;
-  const pwd = process.env.KAS_PASSWORD;
+  const pwd = kasPassword(user);
   if (!user || !pwd) throw new Error("KAS_LOGIN und KAS_PASSWORD nicht gesetzt");
+  const session = sessions[user];
+  if (session && session.expiresAt > now + 30_000) return session.token;
   const xml = await soapPost(AUTH_URL, "urn:KasAuth", "KasAuth", {
     kas_login: user, kas_auth_type: "plain", kas_auth_data: pwd,
     session_lifetime: 3600, session_update_lifetime: "Y",
   });
   const token = parseReturn(xml);
-  session = { token, expiresAt: now + 3_600_000 };
+  sessions[user] = { token, expiresAt: now + 3_600_000 };
   return token;
 }
 
-export async function kasCall(action: string, params: Record<string, unknown> = {}): Promise<McpResult> {
-  const user = process.env.KAS_LOGIN!;
+export async function kasCall(action: string, params: Record<string, unknown> = {}, user = process.env.KAS_LOGIN!): Promise<McpResult> {
   const floodUntil = lastFloodDelay[action];
   if (floodUntil && Date.now() < floodUntil) {
     await new Promise((r) => setTimeout(r, floodUntil - Date.now()));
   }
   let token: string;
-  try { token = await getSession(); }
+  try { token = await getSession(user); }
   catch (e) { return err(`Auth-Fehler: ${String(e)}`); }
 
   const doCall = async (tok: string) =>
@@ -162,8 +166,8 @@ export async function kasCall(action: string, params: Record<string, unknown> = 
     if (typeof flood === 'number' && flood > 0) lastFloodDelay[action] = Date.now() + flood * 1000;
 
     if (xml.includes("session_invalid") || xml.includes("session_not_exist")) {
-      session = null;
-      token = await getSession();
+      delete sessions[user];
+      token = await getSession(user);
       xml = await doCall(token);
     }
 

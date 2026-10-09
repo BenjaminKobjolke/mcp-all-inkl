@@ -98,11 +98,12 @@ Actions:
 Actions:
 - list: list all accounts
 - get_resources: resource limits and usage
+- usage: totals plus per-subaccount quota and usage (webspace, cronjobs, databases, ftpusers); real counts need env KAS_PASSWORD_<login> per subaccount, else used=null
 - get_settings: account settings
 - get_server_info: server information (PHP versions, MySQL, OS)
 - create/update/delete: account management
 - update_settings/update_superuser: change settings` + PF,
-    actions: ["list", "get_resources", "get_settings", "get_server_info", "create", "update", "update_settings", "update_superuser", "delete"],
+    actions: ["list", "get_resources", "usage", "get_settings", "get_server_info", "create", "update", "update_settings", "update_superuser", "delete"],
   },
   {
     name: "kas_system",
@@ -118,7 +119,7 @@ Actions:
 
 const READ_ACTIONS = new Set([
   "list", "list_tlds", "list_forwards", "list_lists", "list_filters",
-  "get_resources", "get_settings", "get_server_info",
+  "get_resources", "usage", "get_settings", "get_server_info",
   "get_space", "get_space_usage", "get_traffic",
 ]);
 

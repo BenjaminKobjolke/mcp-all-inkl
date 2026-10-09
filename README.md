@@ -176,6 +176,7 @@ Add to Zed `settings.json` (via Agent Panel -> Settings):
 |----------|----------|---------|-------------|
 | `KAS_LOGIN` | Yes | - | KAS account login (format: `w0XXXXXXX`) |
 | `KAS_PASSWORD` | Yes | - | KAS account password |
+| `KAS_PASSWORD_<login>` | No | - | KAS password of subaccount `<login>`, used by `account usage` for real per-subaccount counts |
 
 Get your KAS login from the [KAS admin panel](https://kas.all-inkl.com) - it's shown in the top right after login.
 
@@ -330,6 +331,7 @@ Manages mailboxes, forwards, mailing lists, and filters.
 |--------|----------------|-------------|
 | `list` | - | List all accounts |
 | `get_resources` | - | Resource limits and current usage |
+| `usage` | - | Totals plus quota and usage per subaccount (webspace, cronjobs, databases, ftpusers). `used` is `null` for subaccounts without `KAS_PASSWORD_<login>` |
 | `get_settings` | - | Account settings |
 | `get_server_info` | - | Server info (PHP versions, MySQL, OS) |
 | `create` | `account_kas_password`, `account_ftp_password` | Create sub-account |
