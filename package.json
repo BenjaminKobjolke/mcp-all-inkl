@@ -15,6 +15,7 @@
   "scripts": {
     "build": "tsc",
     "build:check": "tsc --noEmit",
+    "test": "node --test \"dist/**/*.test.js\"",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "start:http": "node dist/http.js"
