@@ -138,6 +138,23 @@ const handlers: Record<string, (i: ToolInput) => Promise<McpResult>> = {
   kas_system: handleSystem,
 };
 
+export async function callTool(name: string, input: ToolInput, readonly = false): Promise<McpResult> {
+  const handler = handlers[name];
+  if (!handler) {
+    return { isError: true, content: [{ type: "text", text: `Unbekanntes Tool: ${name}` }] };
+  }
+  if (readonly && isWriteAction(input.action)) {
+    return { isError: true, content: [{ type: "text", text: `Aktion '${input.action}' ist im Readonly-Modus gesperrt.` }] };
+  }
+  const result = await handler(input);
+  if (!result.isError && (input.pick || input.filter)) {
+    const data = JSON.parse(result.content[0].text);
+    const filtered = applyPickAndFilter(data, input.pick, input.filter);
+    return { content: [{ type: "text", text: JSON.stringify(filtered, null, 2) }] };
+  }
+  return result;
+}
+
 export function createServer(opts: { readonly?: boolean } = {}): Server {
   const readonly = opts.readonly ?? false;
   const server = new Server(
@@ -165,24 +182,8 @@ export function createServer(opts: { readonly?: boolean } = {}): Server {
     }).filter((t) => (t.inputSchema.properties.action.enum as string[]).length > 0),
   }));
 
-  server.setRequestHandler(CallToolRequestSchema, async (req) => {
-    const { name, arguments: args } = req.params;
-    const handler = handlers[name];
-    if (!handler) {
-      return { isError: true, content: [{ type: "text", text: `Unbekanntes Tool: ${name}` }] };
-    }
-    const input = args as unknown as ToolInput;
-    if (readonly && isWriteAction(input.action)) {
-      return { isError: true, content: [{ type: "text", text: `Aktion '${input.action}' ist im Readonly-Modus gesperrt.` }] };
-    }
-    const result = await handler(input);
-    if (!result.isError && (input.pick || input.filter)) {
-      const data = JSON.parse(result.content[0].text);
-      const filtered = applyPickAndFilter(data, input.pick, input.filter);
-      return { content: [{ type: "text", text: JSON.stringify(filtered, null, 2) }] };
-    }
-    return result;
-  });
+  server.setRequestHandler(CallToolRequestSchema, async (req) =>
+    callTool(req.params.name, req.params.arguments as unknown as ToolInput, readonly));
 
   return server;
 }
