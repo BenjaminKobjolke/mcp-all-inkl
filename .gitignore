@@ -3,3 +3,16 @@ dist/
 docs/
 *.env
 .env*
+
+# Claude / AI working files
+claude-plans
+.claude/
+/PLAN_*.md
+PLAN.md
+HANDOFF.md
+
+# External ticket tool working files
+/tickets/
+
+# Temporary commit message file
+tmp/commit_msg.tmp
